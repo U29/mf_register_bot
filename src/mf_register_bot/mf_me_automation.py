@@ -38,6 +38,16 @@ async def moneyforward_login():
 
     await asyncio.sleep(5)
 
+    # 暗号資産総額の取得
+    # heading-smallクラスの最初の要素のテキストを取得
+    total_assets = await page.evaluate(
+        'document.querySelector(".heading-small").textContent'
+    )
+    print(total_assets)
+    total_assets = total_assets.split("：")[1]
+    total_assets = total_assets.replace("円", "").replace(",", "")
+    print(total_assets)
+
     # .accounts-formクラスのsectionタグ以下の最初のaタグをクリック
     await page.waitForSelector(".accounts-form")
     await page.evaluate('document.querySelector(".accounts-form a").click()')
