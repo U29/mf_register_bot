@@ -21,14 +21,6 @@ async def moneyforward_login():
     # 1. https://moneyforward.com にアクセス
     await page.goto(MONEYFORWARD_ACCOUNTS_URL)
 
-    # # 2. className="header-nav-menu" をクリック
-    # await page.waitForSelector(".header-nav-menu")
-    # await page.click(".header-nav-menu")
-
-    # # 3. href="/sign_in" の a タグをクリック
-    # await page.waitForSelector('a[href="/sign_in"]')
-    # await page.click('a[href="/sign_in"]')
-
     # 4. type="email" の input タグにメールアドレスを入力
     await page.waitForSelector('input[type="email"]')
     await page.type('input[type="email"]', MONEYFORWARD_EMAIL)
@@ -41,30 +33,18 @@ async def moneyforward_login():
     await page.type('input[type="password"]', MONEYFORWARD_PASSWORD)
 
     # 7. id="submitto" の部分をクリック
+    await page.waitForSelector("#submitto")
     await page.click("#submitto")
 
-    # # 8. value="yuluthi@gmail.com" の input タグをクリック
-    # await page.waitForSelector('input[value="yuluthi@gmail.com"]')
-    # await page.click('input[value="yuluthi@gmail.com"]')
+    await asyncio.sleep(5)
 
-    # # 9. 口座ページにアクセス
-    # await page.goto(MONEYFORWARD_ACCOUNTS_URL)
+    # .accounts-formクラスのsectionタグ以下の最初のaタグをクリック
+    await page.waitForSelector(".accounts-form")
+    await page.evaluate('document.querySelector(".accounts-form a").click()')
 
-    # # 5. id="submitto" の部分をクリック
-    # await page.click("#submitto")
-
-    # 10. 「手入力で資産を追加」というテキストを含む要素をクリック
-    # "手入力で資産を追加"のボタンをクリックする
-    await page.waitForSelector('a[href="#modal_asset_new"]')  # href属性で指定
-    # モーダルを開くためのJavaScriptを実行
-    await page.evaluate(
-        "document.querySelector('a[href=\"#modal_asset_new\"]').click()"
-    )
-
-    # 11. id=user_asset_det_asset_subclass_id の select タグで option の value="66" を選択
-    await page.waitForSelector("#user_asset_det_asset_subclass_id")
+    # 11. id=user_asset_det_asset_subclass_id の select タグ以下のlabelが預金・現金・暗号資産のoptgroupタグ内で optionタグ の value="66" を選択
+    await page.waitForSelector("#user_asset_det_asset_subclass_id", {"visible": True})
     await page.select("#user_asset_det_asset_subclass_id", "66")
-
     # 12. id=user_asset_det_name の input タグに "USDT" を入力
     await page.waitForSelector("#user_asset_det_name", {"visible": True})
     # await page.type("#user_asset_det_name", "USDT")
@@ -77,13 +57,22 @@ async def moneyforward_login():
     await page.evaluate(
         'document.querySelector("#user_asset_det_value").value = "1000"'
     )
-
     # 14. 「この内容で登録する」ボタンをクリック
     # await page.click('input[value="この内容で登録する"]')
     # JavaScriptで直接クリック
     await page.evaluate(
         "document.querySelector('input[value=\"この内容で登録する\"]').click()"
     )
+
+    await asyncio.sleep(5)
+
+    # class="alert alert-success" のテキストが"資産を追加しました"であることを確認
+    await page.waitForSelector(".alert.alert-success")
+    success_message = await page.evaluate(
+        'document.querySelector(".alert.alert-success").textContent'
+    )
+    print(success_message)
+    assert "資産を追加しました" in success_message
 
     # ブラウザを閉じる
     await browser.close()
