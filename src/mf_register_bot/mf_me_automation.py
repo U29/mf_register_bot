@@ -51,8 +51,16 @@ async def moneyforward_login():
             "--disable-gpu",
         ],
     )
+    print("Browser launched")
     page = await browser.newPage()
+    print("Page created")
 
+    await page.setUserAgent(
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.88 Safari/537.36"
+    )
+    print("User agent set")
+    await page.setViewport({"width": 1200, "height": 800})
+    print("Viewport set")
     # 1. https://moneyforward.com にアクセス
     await page.goto(MONEYFORWARD_ACCOUNTS_URL)
     print("Accessed to MoneyForward")
