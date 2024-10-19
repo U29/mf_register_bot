@@ -14,14 +14,25 @@ appdirs==1.4.4
     # via pyppeteer
 certifi==2024.8.30
     # via pyppeteer
+    # via requests
+charset-normalizer==3.4.0
+    # via requests
+idna==3.10
+    # via requests
 importlib-metadata==8.5.0
     # via pyppeteer
+pybit==5.8.0
+    # via mf-register-bot
+pycryptodome==3.21.0
+    # via pybit
 pyee==11.1.1
     # via pyppeteer
 pyppeteer==2.0.0
     # via mf-register-bot
 python-dotenv==1.0.1
     # via mf-register-bot
+requests==2.32.3
+    # via pybit
 ruff==0.6.8
     # via mf-register-bot
 tqdm==4.66.5
@@ -30,6 +41,9 @@ typing-extensions==4.12.2
     # via pyee
 urllib3==1.26.20
     # via pyppeteer
+    # via requests
+websocket-client==1.8.0
+    # via pybit
 websockets==10.4
     # via pyppeteer
 zipp==3.20.2

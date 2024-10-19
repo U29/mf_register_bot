@@ -2,6 +2,8 @@ import asyncio
 from pyppeteer import launch
 import os
 from dotenv import load_dotenv
+from pybit.unified_trading import HTTP
+import requests
 
 # 環境変数をロード
 load_dotenv()
@@ -11,9 +13,36 @@ MONEYFORWARD_URL = os.getenv("MONEYFORWARD_URL")
 MONEYFORWARD_ACCOUNTS_URL = os.getenv("MONEYFORWARD_ACCOUNTS_URL")
 MONEYFORWARD_EMAIL = os.getenv("MONEYFORWARD_EMAIL")
 MONEYFORWARD_PASSWORD = os.getenv("MONEYFORWARD_PASSWORD")
+BYBIT_API_KEY = os.getenv("BYBIT_API_KEY")
+BYBIT_API_SECRET = os.getenv("BYBIT_API_SECRET")
 
 
 async def moneyforward_login():
+    # Bybit APIセッションを初期化
+    session = HTTP(
+        testnet=False,
+        api_key=BYBIT_API_KEY,
+        api_secret=BYBIT_API_SECRET,
+        recv_window=10000,
+    )
+
+    # 総資産を取得
+    total_balance = session.get_wallet_balance(
+        accountType="UNIFIED",
+        coin="USDT",
+    )
+    total_balance = float(total_balance["result"]["list"][0]["totalEquity"])
+    print(total_balance)
+
+    # APIで為替レートを取得
+    url = "https://api.excelapi.org/currency/rate?pair=usd-jpy"
+    response = requests.get(url)
+    assert response.status_code == 200
+    usd_rate = float(response.json())
+
+    # 総資産を円換算
+    total_balance_jpy = total_balance * usd_rate
+
     # ブラウザ起動
     browser = await launch(headless=False)
     page = await browser.newPage()
@@ -48,6 +77,10 @@ async def moneyforward_login():
     total_assets = total_assets.replace("円", "").replace(",", "")
     print(total_assets)
 
+    # 総資産の差分を計算
+    diff = int(total_balance_jpy - float(total_assets))
+    print(diff)
+
     # .accounts-formクラスのsectionタグ以下の最初のaタグをクリック
     await page.waitForSelector(".accounts-form")
     await page.evaluate('document.querySelector(".accounts-form a").click()')
@@ -61,11 +94,11 @@ async def moneyforward_login():
     # JavaScriptで直接値を設定
     await page.evaluate('document.querySelector("#user_asset_det_name").value = "USDT"')
 
-    # 13. id=user_asset_det_value の input タグに "1000" を入力
+    # 13. id=user_asset_det_value の input タグに diff を入力
     await page.waitForSelector("#user_asset_det_value", {"visible": True})
     # JavaScriptで直接値を設定
     await page.evaluate(
-        'document.querySelector("#user_asset_det_value").value = "1000"'
+        f'document.querySelector("#user_asset_det_value").value = "{diff}"'
     )
     # 14. 「この内容で登録する」ボタンをクリック
     # await page.click('input[value="この内容で登録する"]')
