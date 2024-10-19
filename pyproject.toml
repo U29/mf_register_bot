@@ -5,7 +5,11 @@ description = "Add your description here"
 authors = [
     { name = "Kento Fukuda", email = "kento.fukuda@firstloop-tech.com" }
 ]
-dependencies = []
+dependencies = [
+    "ruff>=0.6.8",
+    "pyppeteer>=2.0.0",
+    "python-dotenv>=1.0.1",
+]
 readme = "README.md"
 requires-python = ">= 3.8"
 
