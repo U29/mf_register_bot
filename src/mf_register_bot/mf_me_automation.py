@@ -44,26 +44,37 @@ async def moneyforward_login():
     total_balance_jpy = total_balance * usd_rate
 
     # ブラウザ起動
-    browser = await launch(headless=False)
+    browser = await launch(
+        headless=True,
+        args=[
+            "--no-sandbox",
+            "--disable-gpu",
+        ],
+    )
     page = await browser.newPage()
 
     # 1. https://moneyforward.com にアクセス
     await page.goto(MONEYFORWARD_ACCOUNTS_URL)
+    print("Accessed to MoneyForward")
 
     # 4. type="email" の input タグにメールアドレスを入力
     await page.waitForSelector('input[type="email"]')
     await page.type('input[type="email"]', MONEYFORWARD_EMAIL)
+    print("Typed email")
 
     # 5. id="submitto" の部分をクリック
     await page.click("#submitto")
+    print("Clicked submitto")
 
     # 6. type="password" の input タグにパスワードを入力
     await page.waitForSelector('input[type="password"]')
     await page.type('input[type="password"]', MONEYFORWARD_PASSWORD)
+    print("Typed password")
 
     # 7. id="submitto" の部分をクリック
     await page.waitForSelector("#submitto")
     await page.click("#submitto")
+    print("Clicked submitto")
 
     await asyncio.sleep(5)
 
