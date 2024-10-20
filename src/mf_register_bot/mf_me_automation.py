@@ -15,6 +15,7 @@ MONEYFORWARD_EMAIL = os.getenv("MONEYFORWARD_EMAIL")
 MONEYFORWARD_PASSWORD = os.getenv("MONEYFORWARD_PASSWORD")
 BYBIT_API_KEY = os.getenv("BYBIT_API_KEY")
 BYBIT_API_SECRET = os.getenv("BYBIT_API_SECRET")
+HEADLESS_MODE = os.getenv("HEADLESS_MODE") == "TRUE"
 
 
 async def moneyforward_login():
@@ -45,7 +46,7 @@ async def moneyforward_login():
 
     # ブラウザ起動
     browser = await launch(
-        headless=True,
+        headless=HEADLESS_MODE,
         args=[
             "--no-sandbox",
             "--disable-gpu",
@@ -59,27 +60,27 @@ async def moneyforward_login():
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.88 Safari/537.36"
     )
     print("User agent set")
-    await page.setViewport({"width": 1200, "height": 800})
+    await page.setViewport({"width": 1200, "height": 1080})
     print("Viewport set")
-    # 1. https://moneyforward.com にアクセス
+    # https://moneyforward.com にアクセス
     await page.goto(MONEYFORWARD_ACCOUNTS_URL)
     print("Accessed to MoneyForward")
 
-    # 4. type="email" の input タグにメールアドレスを入力
+    # type="email" の input タグにメールアドレスを入力
     await page.waitForSelector('input[type="email"]')
     await page.type('input[type="email"]', MONEYFORWARD_EMAIL)
     print("Typed email")
 
-    # 5. id="submitto" の部分をクリック
+    # id="submitto" の部分をクリック
     await page.click("#submitto")
     print("Clicked submitto")
 
-    # 6. type="password" の input タグにパスワードを入力
+    # type="password" の input タグにパスワードを入力
     await page.waitForSelector('input[type="password"]')
     await page.type('input[type="password"]', MONEYFORWARD_PASSWORD)
     print("Typed password")
 
-    # 7. id="submitto" の部分をクリック
+    # id="submitto" の部分をクリック
     await page.waitForSelector("#submitto")
     await page.click("#submitto")
     print("Clicked submitto")
@@ -100,41 +101,84 @@ async def moneyforward_login():
     diff = int(total_balance_jpy - float(total_assets))
     print(diff)
 
-    # .accounts-formクラスのsectionタグ以下の最初のaタグをクリック
-    await page.waitForSelector(".accounts-form")
-    await page.evaluate('document.querySelector(".accounts-form a").click()')
+    if diff == 0:
+        print("資産に変動はありません")
+        return
 
-    # 11. id=user_asset_det_asset_subclass_id の select タグ以下のlabelが預金・現金・暗号資産のoptgroupタグ内で optionタグ の value="66" を選択
-    await page.waitForSelector("#user_asset_det_asset_subclass_id", {"visible": True})
-    await page.select("#user_asset_det_asset_subclass_id", "66")
-    # 12. id=user_asset_det_name の input タグに "USDT" を入力
-    await page.waitForSelector("#user_asset_det_name", {"visible": True})
-    # await page.type("#user_asset_det_name", "USDT")
-    # JavaScriptで直接値を設定
-    await page.evaluate('document.querySelector("#user_asset_det_name").value = "USDT"')
-
-    # 13. id=user_asset_det_value の input タグに diff を入力
-    await page.waitForSelector("#user_asset_det_value", {"visible": True})
-    # JavaScriptで直接値を設定
+    # class="cf-new-btn btn modal-switch btn-warning" のbuttonタグをクリック
+    await page.waitForSelector(".cf-new-btn.btn.modal-switch.btn-warning")
     await page.evaluate(
-        f'document.querySelector("#user_asset_det_value").value = "{diff}"'
+        'document.querySelector(".cf-new-btn.btn.modal-switch.btn-warning").click()'
     )
-    # 14. 「この内容で登録する」ボタンをクリック
-    # await page.click('input[value="この内容で登録する"]')
-    # JavaScriptで直接クリック
+    await asyncio.sleep(1)
+
+    if diff < 0:
+        # 支出ボタンをクリック
+        # class=minus-payment かつ id=user_asset_act_payment_2 のinputタグをクリック
+        await page.waitForSelector(".minus-payment")
+        await page.evaluate('document.querySelector(".minus-payment").click()')
+
+    else:
+        # 収入ボタンをクリック
+        # class=plus-payment かつ id=user_asset_act_payment_2 のinputタグをクリック
+
+        await page.waitForSelector(".plus-payment")
+        await page.evaluate('document.querySelector(".plus-payment").click()')
+        await asyncio.sleep(1)
+
+    # id=appendedPrependedInput のinputタグに diff を入力
+    await page.waitForSelector("#appendedPrependedInput")
     await page.evaluate(
-        "document.querySelector('input[value=\"この内容で登録する\"]').click()"
+        f'document.querySelector("#appendedPrependedInput").value = "{abs(diff)}"'
     )
+    await asyncio.sleep(1)
 
-    await asyncio.sleep(5)
+    # id=js-large-category-selected のaタグをクリック
+    await page.waitForSelector("#js-large-category-selected")
+    await page.evaluate('document.querySelector("#js-large-category-selected").click()')
 
-    # class="alert alert-success" のテキストが"資産を追加しました"であることを確認
-    await page.waitForSelector(".alert.alert-success")
-    success_message = await page.evaluate(
-        'document.querySelector(".alert.alert-success").textContent'
-    )
-    print(success_message)
-    assert "資産を追加しました" in success_message
+    await asyncio.sleep(1)
+
+    if diff < 0:
+        # id=19517320のaタグをクリック(その他)
+        await page.waitForSelector('[id="19517320"]')
+        await page.evaluate("document.querySelector('[id=\"19517320\"]').click()")
+        print("19517320 click end")
+
+        # id=js-middle-category-selected のaタグをクリック
+        await page.waitForSelector("#js-middle-category-selected")
+        await page.evaluate(
+            'document.querySelector("#js-middle-category-selected").click()'
+        )
+
+        # id=19517320 のaタグをクリック(暗号資産取引)
+        await page.waitForSelector('[id="19517320"]')
+        await page.evaluate("document.querySelector('[id=\"19517320\"]').click()")
+
+    else:
+        # id=1のaタグをクリック(収入)
+        await page.waitForSelector('[id="1"]')
+        await page.evaluate("document.querySelector('[id=\"1\"]').click()")
+
+        await asyncio.sleep(1)
+
+        # id=js-middle-category-selected のaタグをクリック
+        await page.waitForSelector("#js-middle-category-selected")
+        await page.evaluate(
+            'document.querySelector("#js-middle-category-selected").click()'
+        )
+
+        # id=19517314 のaタグをクリック(暗号資産取引)
+        await page.waitForSelector('[id="19517314"]')
+        await page.evaluate("document.querySelector('[id=\"19517314\"]').click()")
+
+        await asyncio.sleep(1)
+
+    # id=submit-button のinputタグをクリック
+    await page.waitForSelector("#submit-button")
+    await page.evaluate('document.querySelector("#submit-button").click()')
+
+    print("資産を追加しました")
 
     # ブラウザを閉じる
     await browser.close()
